@@ -3,7 +3,7 @@
 // - The shared app file (one copy for every business): opens instantly from the phone,
 //   and the newest version is downloaded in the background for next time.
 // - App data (schedules, logins) always goes live to Google and is never saved here.
-var CACHE = 'sb-site-2', APP = 'https://bansgrp-cmd.github.io/BGISCHAPP/';
+var CACHE = 'sb-site-3', APP = 'https://bansgrp-cmd.github.io/BGISCHAPP/';
 var SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(CACHE).then(function (c) {
@@ -37,3 +37,20 @@ self.addEventListener('fetch', function (e) {
     }));
   }
 });
+// phone notifications (reminders, schedule posted, requests…)
+self.addEventListener('push', function (e) {
+  var d = {}; try { d = e.data ? e.data.json() : {}; } catch (x) { d = { b: e.data ? e.data.text() : '' }; }
+  var o = { body: d.b || '', icon: 'icon-192.png', badge: 'favicon-32.png', data: { u: d.u || './' } };
+  if (d.g) { o.tag = d.g; o.renotify = true; }
+  e.waitUntil(self.registration.showNotification(d.t || 'Schedule', o));
+});
+self.addEventListener('notificationclick', function (e) {
+  e.notification.close();
+  var u = new URL((e.notification.data && e.notification.data.u) || './', self.registration.scope).href;
+  e.waitUntil(clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (l) {
+    for (var i = 0; i < l.length; i++) if ('focus' in l[i]) return l[i].focus();
+    return clients.openWindow(u);
+  }));
+});
+// room for future additions without touching each business website again
+try { importScripts(APP + 'sw-extra.js'); } catch (e) { }
